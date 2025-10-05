@@ -39,7 +39,7 @@ class GameState:
 class GameEngine:
     """Core game loop independent from any rendering framework."""
 
-    TARGET_POINTS = 15
+    TARGET_POINTS = 10
 
     def __init__(self, castle_factory: Callable[[], Iterable[Castle]]):
         self._castle_factory = castle_factory
@@ -74,23 +74,23 @@ class GameEngine:
             owner = castle.owner if castle.owner else "フリー"
             cycle_info = f"開発済{castle.cycle}" if castle.cycle > 0 else ""
             io.display(
-                f"- {castle.name}: ポイント {castle.point}, 防御力 {castle.defense}, "
-                f"開発成功率 {castle.stability},({owner} {cycle_info})"
+                f"- {castle.name}: ポイント {castle.point}, 防御力 {castle.defense} "
+                f"({owner} {cycle_info})"
             )
 
     def handle_victory(self, io: GameIO, winner: str) -> None:
-        io.display(f"\n{winner}は、他の全てのキャッスルを開発しようとしている")
+        io.display(f"\n{winner}は、他の全てのキャッスルを寝とろうとしている")
         io.sleep(1)
         for castle in self.state.castles:
             previous_owner = castle.owner if castle.owner else "フリー"
             if previous_owner != winner:
-                io.display(f"'{castle.name}'を{previous_owner}から奪取した！")
+                io.display(f"'{castle.name}'を{previous_owner}から寝とった！")
                 io.sleep(1)
             castle.owner = winner
 
         for castle in self.state.castles:
             if castle.cycle == 0:
-                io.display(f"{winner}は'{castle.name}'の開発に成功した！")
+                io.display(f"{winner}は'{castle.name}'を妊娠させた♡")
                 castle.cycle = 2
                 io.sleep(1)
 
@@ -115,10 +115,27 @@ class GameEngine:
         for castle in self.state.castles:
             if castle.cycle > 0 and castle.owner == owner:
                 castle.cycle -= 1
-                io.display(f"{owner}の'{castle.name}'の開発段階が1進んだ！")
+                if owner == self.state.username:
+                    progress_message = (
+                        f"{self.state.username}の'{castle.name}'の周期が1進んだ♡"
+                    )
+                    complete_message = (
+                        f"'{castle.name}'は{self.state.username}の子供を出産した♡"
+                    )
+                elif owner == "CPU":
+                    progress_message = f"CPUの'{castle.name}'の周期が1進んだ♡"
+                    complete_message = f"'{castle.name}'はCPUの子供を出産した♡"
+                elif owner == "CPU2":
+                    progress_message = f"CPU2の'{castle.name}'の周期が1進んだ♡"
+                    complete_message = f"'{castle.name}'はCPU2の子供を出産した♡"
+                else:
+                    progress_message = f"{owner}の'{castle.name}'の周期が1進んだ♡"
+                    complete_message = f"'{castle.name}'は{owner}の子供を出産した♡"
+
+                io.display(progress_message)
                 io.sleep(1)
                 if castle.cycle == 0:
-                    io.display(f"'{castle.name}'は{owner}の開発を完了した！")
+                    io.display(complete_message)
                     points = castle.point
                     if owner == self.state.username:
                         self.state.player_points += points
@@ -147,7 +164,7 @@ class GameEngine:
 
     def player_turn(self, io: GameIO) -> TurnOutcome:
         io.sleep(1)
-        io.display(f"\n{self.state.username}は誰を攻撃/開発する？")
+        io.display(f"\n{self.state.username}は誰をナンパ/開発する？")
         io.display(f"CPUのポイント: {self.state.cpu_points}")
         io.display(f"CPU2のポイント: {self.state.cpu2_points}")
         io.display(f"{self.state.username}のポイント: {self.state.player_points}")
@@ -175,11 +192,13 @@ class GameEngine:
 
             if target and target.owner == self.state.username:
                 if target.cycle == 0:
-                    io.display(f"\n{self.state.username}は'{target.name}'を開発している...")
+                    io.display(
+                        f"\n{self.state.username}は'{target.name}'を開発しようとしている..."
+                    )
                     io.sleep(1)
                     success_chance = target.stability / 10
                     if random.random() < success_chance:
-                        io.display(f"{self.state.username}は'{target.name}'の開発に成功した！")
+                        io.display(f"{self.state.username}は'{target.name}'を妊娠させた♡")
                         target.cycle = 2
                     else:
                         io.display(f"{self.state.username}は'{target.name}'の開発に失敗した！")
@@ -187,31 +206,31 @@ class GameEngine:
                     break
                 io.display(f"'{target.name}'はすでに開発済です。")
             elif target and target.owner is None:
-                io.display(f"{self.state.username}は'{target.name}'を攻撃した！")
+                io.display(f"{self.state.username}は'{target.name}'をナンパした！")
                 io.sleep(1)
                 success_chance = (10 - (target.defense / 2)) / 10
                 if random.random() < success_chance:
-                    io.display(f"{self.state.username}は'{target.name}'を手に入れた！")
+                    io.display(f"{self.state.username}は'{target.name}'を彼女にした♡")
                     target.owner = self.state.username
                 else:
-                    io.display(f"{self.state.username}は'{target.name}'の攻撃に失敗した！")
+                    io.display(f"{self.state.username}は'{target.name}'のナンパに失敗した！")
                 io.sleep(1)
                 break
             elif target and target.owner != self.state.username and target.cycle == 0:
-                io.display(f"{self.state.username}は'{target.name}'を攻撃しようとしている...")
+                io.display(f"{self.state.username}は'{target.name}'を寝とった！")
                 io.sleep(1)
                 success_chance = (10 + target.stability - target.defense) / 20
                 if random.random() < success_chance:
                     io.display(
-                        f"{self.state.username}は'{target.owner}'の'{target.name}'を奪取した！"
+                        f"{self.state.username}は'{target.owner}'の'{target.name}'を寝とった♡"
                     )
                     target.owner = self.state.username
                 else:
-                    io.display(f"{self.state.username}は'{target.name}'の攻撃に失敗した！")
+                    io.display(f"{self.state.username}は'{target.name}'の寝取りに失敗した！")
                 io.sleep(1)
                 break
             else:
-                io.display(f"{player_input}は攻撃/開発できません。再度選択してください。")
+                io.display(f"{player_input}はナンパ/開発できません。再度選択してください。")
         io.sleep(1)
         return TurnOutcome.CONTINUE
 
@@ -229,35 +248,35 @@ class GameEngine:
         if developed_castles:
             target = random.choice(developed_castles)
             success_chance = target.stability / 10
-            io.display(f"\nCPUは'{target.name}'を開発している...")
+            io.display(f"\nCPUは'{target.name}'を開発しようとしている...")
             io.sleep(1)
             if random.random() < success_chance:
-                io.display(f"CPUは'{target.name}'の開発に成功した！")
+                io.display(f"CPUは'{target.name}'を妊娠させた♡")
                 target.cycle = 2
             else:
                 io.display(f"CPUは'{target.name}'の開発に失敗した！")
         elif available_castles:
             target = random.choice(available_castles)
-            io.display(f"\nCPUは'{target.name}'を攻撃した！")
+            io.display(f"\nCPUは'{target.name}'をナンパした！")
             io.sleep(1)
             success_chance = (10 - (target.defense / 2)) / 10
             if random.random() < success_chance:
-                io.display(f"CPUは'{target.name}'を手に入れた！")
+                io.display(f"CPUは'{target.name}'を彼女にした♡")
                 target.owner = "CPU"
             else:
-                io.display(f"CPUは'{target.name}'の攻撃に失敗した！")
+                io.display(f"CPUは'{target.name}'のナンパに失敗した！")
         elif owned_by_player:
             target = random.choice(owned_by_player)
             success_chance = (10 + target.stability - target.defense) / 20
-            io.display(f"\nCPUは'{target.name}'を攻撃しようとしている...")
+            io.display(f"\nCPUは'{target.name}'を寝とろうとしている...")
             io.sleep(1)
             if random.random() < success_chance:
                 io.display(
-                    f"CPUは'{self.state.username}'の'{target.name}'を奪取した！"
+                    f"CPUは'{self.state.username}'の'{target.name}'を寝とった♡"
                 )
                 target.owner = "CPU"
             else:
-                io.display(f"CPUは'{target.name}'の攻撃に失敗した！")
+                io.display(f"CPUは'{target.name}'の寝取りに失敗した！")
         io.sleep(1)
 
     def cpu2_turn(self, io: GameIO) -> None:
@@ -275,45 +294,45 @@ class GameEngine:
         if developed_castles:
             target = random.choice(developed_castles)
             success_chance = target.stability / 10
-            io.display(f"\nCPU2は'{target.name}'を開発している...")
+            io.display(f"\nCPU2は'{target.name}'を開発しようとしている...")
             io.sleep(1)
             if random.random() < success_chance:
-                io.display(f"CPU2は'{target.name}'の開発に成功した！")
+                io.display(f"CPU2は'{target.name}'を妊娠させた♡")
                 target.cycle = 2
             else:
                 io.display(f"CPU2は'{target.name}'の開発に失敗した！")
         elif available_castles:
             target = random.choice(available_castles)
-            io.display(f"\nCPU2は'{target.name}'を攻撃した！")
+            io.display(f"\nCPU2は'{target.name}'をナンパした！")
             io.sleep(1)
             success_chance = (10 - (target.defense / 2)) / 10
             if random.random() < success_chance:
-                io.display(f"CPU2は'{target.name}'を手に入れた！")
+                io.display(f"CPU2は'{target.name}'を彼女にした♡")
                 target.owner = "CPU2"
             else:
-                io.display(f"CPU2は'{target.name}'の攻撃に失敗した！")
+                io.display(f"CPU2は'{target.name}'のナンパに失敗した！")
         elif owned_by_player:
             target = random.choice(owned_by_player)
             success_chance = (10 + target.stability - target.defense) / 20
-            io.display(f"\nCPU2は'{target.name}'を攻撃しようとしている...")
+            io.display(f"\nCPU2は'{target.name}'を寝とろうとしている...")
             io.sleep(1)
             if random.random() < success_chance:
                 io.display(
-                    f"CPU2は'{self.state.username}'の'{target.name}'を奪取した！"
+                    f"CPU2は'{self.state.username}'の'{target.name}'を寝とった♡"
                 )
                 target.owner = "CPU2"
             else:
-                io.display(f"CPU2は'{target.name}'の攻撃に失敗した！")
+                io.display(f"CPU2は'{target.name}'の寝取りに失敗した！")
         elif owned_by_cpu:
             target = random.choice(owned_by_cpu)
             success_chance = (10 + target.stability - target.defense) / 20
-            io.display(f"\nCPU2は'CPU'の'{target.name}'を攻撃しようとしている...")
+            io.display(f"\nCPU2は'CPU'の'{target.name}'を寝とろうとしている...")
             io.sleep(1)
             if random.random() < success_chance:
-                io.display(f"CPU2は'CPU'の'{target.name}'を奪取した！")
+                io.display(f"CPU2は'CPU'の'{target.name}'を寝とった♡")
                 target.owner = "CPU2"
             else:
-                io.display(f"CPU2は'{target.name}'の攻撃に失敗した！")
+                io.display(f"CPU2は'{target.name}'の寝取りに失敗した！")
         io.sleep(1)
 
     def main_game_loop(self, io: GameIO) -> TurnOutcome:
